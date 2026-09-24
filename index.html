@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story Hub</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="authView" class="screen">
+    <div class="auth-card">
+      <div class="brand">Story<span>Hub</span></div>
+      <p class="eyebrow">READ. WRITE. SHARE.</p>
+      <h1>Your next story starts here.</h1>
+      <p class="muted">Create a free account to read stories and share your own.</p>
+      <div class="tabs">
+        <button class="tab active" data-mode="login">Log In</button>
+        <button class="tab" data-mode="signup">Sign Up</button>
+      </div>
+      <form id="authForm">
+        <div id="nameWrap" class="hidden">
+          <label>Full name<input id="name" type="text" autocomplete="name"></label>
+        </div>
+        <label>Email<input id="email" type="email" required autocomplete="email"></label>
+        <label>Password<input id="password" type="password" required minlength="6" autocomplete="current-password"></label>
+        <button class="primary" type="submit" id="authSubmit">Log In</button>
+      </form>
+      <p id="authMessage" class="message"></p>
+      <p class="small">Your account is stored locally in this demo. Connect Supabase for a real shared online account system.</p>
+    </div>
+  </div>
+
+  <div id="appView" class="hidden">
+    <header class="topbar">
+      <a class="brand" href="#" data-page="home">Story<span>Hub</span></a>
+      <button class="menu-btn" id="menuBtn">☰</button>
+      <nav id="nav">
+        <a href="#" data-page="home">Home</a>
+        <a href="#" data-page="stories">Stories</a>
+        <a href="#" data-page="write">Write</a>
+        <a href="#" data-page="profile">Profile</a>
+        <button id="logoutBtn" class="ghost">Log Out</button>
+      </nav>
+    </header>
+
+    <main>
+      <section id="home" class="page active-page">
+        <div class="hero">
+          <div>
+            <p class="eyebrow">WELCOME TO STORY HUB</p>
+            <h2>Stories worth staying for.</h2>
+            <p>Discover free stories, meet new writers, and publish your own.</p>
+            <button class="primary" data-page="stories">Explore Stories</button>
+          </div>
+        </div>
+        <div class="section-head"><h2>Latest Stories</h2><button class="link-btn" data-page="stories">See all</button></div>
+        <div id="latestStories" class="story-grid"></div>
+      </section>
+
+      <section id="stories" class="page">
+        <div class="section-head"><div><p class="eyebrow">DISCOVER</p><h2>All Stories</h2></div></div>
+        <input id="searchInput" class="search" placeholder="Search by title or author...">
+        <div id="storyGrid" class="story-grid"></div>
+      </section>
+
+      <section id="write" class="page">
+        <div class="form-card">
+          <p class="eyebrow">YOUR VOICE MATTERS</p>
+          <h2>Write a story</h2>
+          <p class="muted">Submit your story for review. Approved stories become visible to everyone.</p>
+          <form id="storyForm">
+            <label>Title<input id="storyTitle" required maxlength="120"></label>
+            <label>Category<select id="storyCategory">
+              <option>Romance</option><option>Drama</option><option>Mystery</option><option>Fantasy</option><option>Adventure</option><option>Comedy</option><option>Other</option>
+            </select></label>
+            <label>Story<textarea id="storyContent" required minlength="50" rows="12"></textarea></label>
+            <button class="primary" type="submit">Submit Story</button>
+          </form>
+          <p id="storyMessage" class="message"></p>
+        </div>
+      </section>
+
+      <section id="profile" class="page">
+        <div class="profile-card">
+          <div class="avatar" id="avatar">S</div>
+          <h2 id="profileName">Story Hub User</h2>
+          <p id="profileEmail" class="muted"></p>
+          <div class="stats"><div><strong id="myCount">0</strong><span>Stories</span></div><div><strong id="publishedCount">0</strong><span>Published</span></div></div>
+        </div>
+      </section>
+
+      <section id="reader" class="page">
+        <button class="link-btn" data-page="stories">← Back to stories</button>
+        <article class="reader">
+          <p id="readerCategory" class="eyebrow"></p>
+          <h1 id="readerTitle"></h1>
+          <p id="readerAuthor" class="muted"></p>
+          <div id="readerContent" class="reader-content"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

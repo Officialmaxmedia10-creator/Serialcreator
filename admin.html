@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story Hub Admin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body">
+  <main class="admin-shell">
+    <div class="admin-card">
+      <div class="brand">Story<span>Hub</span> Admin</div>
+      <p class="muted">Private administration area</p>
+      <form id="adminLogin">
+        <label>Admin email<input id="adminEmail" type="email" required></label>
+        <label>Admin password<input id="adminPassword" type="password" required></label>
+        <button class="primary" type="submit">Enter Dashboard</button>
+      </form>
+      <p id="adminMessage" class="message"></p>
+      <p class="small">Demo mode: credentials are configured in admin.js. Do not use this local demo as production security.</p>
+    </div>
+
+    <section id="dashboard" class="dashboard hidden">
+      <div class="dashboard-head">
+        <div><p class="eyebrow">CONTROL CENTER</p><h1>Story Hub Admin</h1></div>
+        <button id="adminLogout" class="ghost">Log Out</button>
+      </div>
+      <div class="admin-stats">
+        <div><strong id="pendingTotal">0</strong><span>Pending</span></div>
+        <div><strong id="publishedTotal">0</strong><span>Published</span></div>
+        <div><strong id="usersTotal">0</strong><span>Users</span></div>
+      </div>
+      <div class="admin-section">
+        <h2>Pending Stories</h2>
+        <div id="pendingList"></div>
+      </div>
+      <div class="admin-section">
+        <h2>Published Stories</h2>
+        <div id="publishedList"></div>
+      </div>
+    </section>
+  </main>
+  <script src="admin.js"></script>
+</body>
+</html>
