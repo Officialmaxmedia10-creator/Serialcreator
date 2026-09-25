@@ -1,38 +1,227 @@
-const USERS_KEY='storyhub_users_v1', STORIES_KEY='storyhub_stories_v1', SESSION_KEY='storyhub_session_v1';
-const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
-let mode='login';
+const { createClient } = window.supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-const demoStories=[
-{id:'1',title:'The Last Train Home',category:'Drama',content:'The station was almost empty when the last train arrived. Maya stepped forward, carrying a small bag and a decision she had been avoiding for years. Sometimes going home is not about a place; it is about finally facing yourself.',author:'Story Hub Editorial',authorEmail:'editor@storyhub.local',status:'published',created:Date.now()},
-{id:'2',title:'A Door in the Rain',category:'Mystery',content:'Every evening at exactly seven, a blue door appeared at the end of the street. Nobody knew where it came from. On Thursday, Daniel decided to knock.',author:'Story Hub Editorial',authorEmail:'editor@storyhub.local',status:'published',created:Date.now()-1000}
-];
-if(!localStorage.getItem(USERS_KEY)) localStorage.setItem(USERS_KEY,JSON.stringify([]));
-if(!localStorage.getItem(STORIES_KEY)) localStorage.setItem(STORIES_KEY,JSON.stringify(demoStories));
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+let mode = 'login';
+let publishedStories = [];
 
-function users(){return JSON.parse(localStorage.getItem(USERS_KEY)||'[]')}
-function stories(){return JSON.parse(localStorage.getItem(STORIES_KEY)||'[]')}
-function saveStories(v){localStorage.setItem(STORIES_KEY,JSON.stringify(v))}
-function session(){return JSON.parse(localStorage.getItem(SESSION_KEY)||'null')}
-function setSession(u){localStorage.setItem(SESSION_KEY,JSON.stringify(u))}
-function showApp(){ $('#authView').classList.add('hidden');$('#appView').classList.remove('hidden');renderStories();renderProfile()}
-function showAuth(){ $('#authView').classList.remove('hidden');$('#appView').classList.add('hidden') }
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+  }[m]));
+}
 
-$$('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;$$('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#nameWrap').classList.toggle('hidden',mode==='login');$('#authSubmit').textContent=mode==='login'?'Log In':'Create Account';$('#authMessage').textContent=''});
+function formatDate(value) {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+}
 
-$('#authForm').onsubmit=e=>{e.preventDefault();const email=$('#email').value.trim().toLowerCase(),password=$('#password').value;let us=users();
-if(mode==='signup'){const name=$('#name').value.trim();if(!name)return $('#authMessage').textContent='Please enter your name.';if(us.some(u=>u.email===email))return $('#authMessage').textContent='An account with this email already exists.';const u={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),name,email,password,created:Date.now()};us.push(u);localStorage.setItem(USERS_KEY,JSON.stringify(us));setSession({id:u.id,name:u.name,email:u.email});showApp();}
-else{const u=us.find(x=>x.email===email&&x.password===password);if(!u)return $('#authMessage').textContent='Incorrect email or password.';setSession({id:u.id,name:u.name,email:u.email});showApp();}};
+function setMessage(selector, message, error = false) {
+  const el = $(selector);
+  el.textContent = message || '';
+  el.classList.toggle('error-message', error);
+}
 
-$('#logoutBtn').onclick=()=>{localStorage.removeItem(SESSION_KEY);showAuth()};
-$('#menuBtn').onclick=()=>$('#nav').classList.toggle('open');
-document.body.addEventListener('click',e=>{const p=e.target.closest('[data-page]');if(p){e.preventDefault();openPage(p.dataset.page)}});
+function showApp() {
+  $('#authView').classList.add('hidden');
+  $('#appView').classList.remove('hidden');
+  loadAllStories();
+  renderProfile();
+}
 
-function openPage(id){$$('.page').forEach(p=>p.classList.remove('active-page'));$('#'+id).classList.add('active-page');$('#nav').classList.remove('open');if(id==='stories')renderStories();if(id==='profile')renderProfile();window.scrollTo({top:0,behavior:'smooth'})}
-function card(s){return `<div class="story-card"><p class="eyebrow">${escapeHtml(s.category)}</p><h3>${escapeHtml(s.title)}</h3><p class="muted">By ${escapeHtml(s.author)}</p><p>${escapeHtml(s.content.slice(0,130))}...</p><button class="link-btn" data-read="${s.id}">Read story →</button></div>`}
-function renderStories(){const published=stories().filter(s=>s.status==='published').sort((a,b)=>b.created-a.created);$('#latestStories').innerHTML=published.slice(0,3).map(card).join('')||'<p class="muted">No published stories yet.</p>';$('#storyGrid').innerHTML=published.map(card).join('')||'<p class="muted">No published stories yet.</p>'}
-$('#searchInput').oninput=()=>{const q=$('#searchInput').value.toLowerCase();$('#storyGrid').innerHTML=stories().filter(s=>s.status==='published'&&(s.title.toLowerCase().includes(q)||s.author.toLowerCase().includes(q))).map(card).join('')||'<p class="muted">No matching stories.</p>'};
-document.addEventListener('click',e=>{const b=e.target.closest('[data-read]');if(!b)return;const s=stories().find(x=>x.id===b.dataset.read);if(!s)return;$('#readerCategory').textContent=s.category;$('#readerTitle').textContent=s.title;$('#readerAuthor').textContent='By '+s.author;$('#readerContent').textContent=s.content;openPage('reader')});
-$('#storyForm').onsubmit=e=>{e.preventDefault();const u=session();if(!u)return;const arr=stories();arr.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),title:$('#storyTitle').value.trim(),category:$('#storyCategory').value,content:$('#storyContent').value.trim(),author:u.name,authorEmail:u.email,status:'pending',created:Date.now()});saveStories(arr);$('#storyForm').reset();$('#storyMessage').textContent='Story submitted for admin review.'};
-function renderProfile(){const u=session();if(!u)return;$('#profileName').textContent=u.name;$('#profileEmail').textContent=u.email;$('#avatar').textContent=u.name.charAt(0).toUpperCase();const mine=stories().filter(s=>s.authorEmail===u.email);$('#myCount').textContent=mine.length;$('#publishedCount').textContent=mine.filter(s=>s.status==='published').length}
-function escapeHtml(x){return String(x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-if(session())showApp();
+function showAuth() {
+  $('#authView').classList.remove('hidden');
+  $('#appView').classList.add('hidden');
+}
+
+$$('[data-mode]').forEach((button) => {
+  button.addEventListener('click', () => {
+    mode = button.dataset.mode;
+    $$('.tab').forEach((x) => x.classList.remove('active'));
+    button.classList.add('active');
+    $('#nameWrap').classList.toggle('hidden', mode === 'login');
+    $('#authSubmit').textContent = mode === 'login' ? 'Log In' : 'Create Account';
+    setMessage('#authMessage', '');
+  });
+});
+
+$('#authForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  setMessage('#authMessage', 'Working...');
+
+  const email = $('#email').value.trim().toLowerCase();
+  const password = $('#password').value;
+
+  if (mode === 'signup') {
+    const displayName = $('#name').value.trim();
+    if (!displayName) return setMessage('#authMessage', 'Please enter your display name.', true);
+
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: displayName } }
+    });
+
+    if (error) return setMessage('#authMessage', error.message, true);
+
+    if (data.session) {
+      setMessage('#authMessage', 'Account created successfully.');
+      showApp();
+    } else {
+      setMessage('#authMessage', 'Account created. Check your email to confirm your account, then log in.');
+      $('#authForm').reset();
+    }
+    return;
+  }
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) return setMessage('#authMessage', error.message, true);
+  if (data.session) showApp();
+});
+
+$('#logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  showAuth();
+});
+
+$('#menuBtn').addEventListener('click', () => $('#nav').classList.toggle('open'));
+
+document.body.addEventListener('click', (event) => {
+  const pageButton = event.target.closest('[data-page]');
+  if (pageButton) {
+    event.preventDefault();
+    openPage(pageButton.dataset.page);
+  }
+});
+
+function openPage(id) {
+  $$('.page').forEach((page) => page.classList.remove('active-page'));
+  const target = $('#' + id);
+  if (!target) return;
+  target.classList.add('active-page');
+  $('#nav').classList.remove('open');
+  if (id === 'stories') renderStories();
+  if (id === 'profile') renderProfile();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function storyCard(story) {
+  const author = story.profiles?.display_name || 'Story Hub Writer';
+  return `<article class="story-card">
+    <p class="eyebrow">${escapeHtml(story.category || 'General')}</p>
+    <h3>${escapeHtml(story.title)}</h3>
+    <p class="muted">By ${escapeHtml(author)} · ${formatDate(story.created_at)}</p>
+    <p>${escapeHtml((story.content || '').slice(0, 150))}${story.content?.length > 150 ? '...' : ''}</p>
+    <button class="link-btn" data-read="${escapeHtml(story.id)}" type="button">Read story →</button>
+  </article>`;
+}
+
+async function loadAllStories() {
+  const { data, error } = await sb
+    .from('stories')
+    .select('id,title,content,category,status,views,created_at,author_id,profiles(display_name)')
+    .eq('status', 'published')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    $('#latestStories').innerHTML = '<p class="muted">Could not load stories. Please refresh.</p>';
+    $('#storyGrid').innerHTML = '<p class="muted">Could not load stories. Please refresh.</p>';
+    return;
+  }
+
+  publishedStories = data || [];
+  renderStories();
+}
+
+function renderStories() {
+  const latest = publishedStories.slice(0, 3);
+  $('#latestStories').innerHTML = latest.map(storyCard).join('') || '<p class="muted">No published stories yet.</p>';
+  filterStories();
+}
+
+function filterStories() {
+  const query = ($('#searchInput')?.value || '').trim().toLowerCase();
+  const filtered = publishedStories.filter((story) => {
+    const author = story.profiles?.display_name || '';
+    return !query || [story.title, story.category, author, story.content].some((value) =>
+      String(value || '').toLowerCase().includes(query)
+    );
+  });
+  $('#storyGrid').innerHTML = filtered.map(storyCard).join('') || '<p class="muted">No matching stories.</p>';
+}
+
+$('#searchInput').addEventListener('input', filterStories);
+
+document.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-read]');
+  if (!button) return;
+
+  const story = publishedStories.find((item) => item.id === button.dataset.read);
+  if (!story) return;
+
+  $('#readerCategory').textContent = story.category || 'General';
+  $('#readerTitle').textContent = story.title;
+  $('#readerAuthor').textContent = `By ${story.profiles?.display_name || 'Story Hub Writer'}`;
+  $('#readerContent').textContent = story.content;
+  openPage('reader');
+});
+
+$('#storyForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  setMessage('#storyMessage', 'Submitting...');
+
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return setMessage('#storyMessage', 'Please log in again.', true);
+
+  const payload = {
+    author_id: user.id,
+    title: $('#storyTitle').value.trim(),
+    category: $('#storyCategory').value,
+    content: $('#storyContent').value.trim()
+  };
+
+  const { error } = await sb.from('stories').insert(payload);
+  if (error) return setMessage('#storyMessage', error.message, true);
+
+  $('#storyForm').reset();
+  setMessage('#storyMessage', 'Story submitted successfully. It is now waiting for admin review.');
+  renderProfile();
+});
+
+async function renderProfile() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('display_name,username')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const displayName = profile?.display_name || user.user_metadata?.display_name || user.email?.split('@')[0] || 'Story Hub User';
+  $('#profileName').textContent = displayName;
+  $('#profileEmail').textContent = user.email || '';
+  $('#avatar').textContent = displayName.charAt(0).toUpperCase();
+
+  const { data: mine } = await sb
+    .from('stories')
+    .select('id,status')
+    .eq('author_id', user.id);
+
+  const rows = mine || [];
+  $('#myCount').textContent = rows.length;
+  $('#publishedCount').textContent = rows.filter((story) => story.status === 'published').length;
+}
+
+sb.auth.onAuthStateChange((_event, session) => {
+  if (session) showApp();
+  else showAuth();
+});
+
+(async function init() {
+  const { data } = await sb.auth.getSession();
+  if (data.session) showApp();
+  else showAuth();
+})();
